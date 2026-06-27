@@ -18,6 +18,12 @@ export default function Home() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [selectedSource, setSelectedSource] =
+    useState("All");
+
+  const [locationFilter, setLocationFilter] =
+  useState("");
+
   async function searchJobs() {
     setLoading(true);
 
@@ -25,12 +31,13 @@ export default function Home() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/jobs?keyword=${encodeURIComponent(
           keyword
-        )}`
+        )}&location=${encodeURIComponent(locationFilter)}`
       );
 
       const data = await response.json();
 
       setJobs(data.jobs || []);
+      console.log(data.jobs);
     } catch (error) {
       console.error(error);
       alert("Failed to load jobs.");
@@ -39,6 +46,22 @@ export default function Home() {
     setLoading(false);
   }
 
+  const filteredJobs = jobs.filter((job) => {
+    const sourceMatch =
+      selectedSource === "All" ||
+      job.source === selectedSource;
+
+    const locationMatch =
+      locationFilter.trim() === "" ||
+      job.location
+        .toLowerCase()
+        .includes(
+          locationFilter.toLowerCase()
+        );
+
+    return sourceMatch && locationMatch;
+  });
+
   return (
     <main className="min-h-screen bg-cyan-400 p-8">
       <div className="mx-auto max-w-5xl">
@@ -46,7 +69,48 @@ export default function Home() {
           Job Aggregator
         </h1>
 
+        <div className="mb-6">
+          <select
+            value={selectedSource}
+            onChange={(e) =>
+              setSelectedSource(e.target.value)
+            }
+            className="rounded border bg-black p-3 text-white"
+          >
+            <option value="All">
+              All Sources
+            </option>
+
+            <option value="The Muse">
+              The Muse
+            </option>
+
+            <option value="Jooble">
+              Jooble
+            </option>
+
+            <option value="Adzuna">
+              Adzuna
+            </option>
+
+            <option value="USAJobs">
+              USAJobs
+            </option>
+          </select>
+        </div>
+
         <div className="mb-8 flex gap-3">
+          <input
+            type="text"
+            value={locationFilter}
+            onChange={(e) =>
+              setLocationFilter(e.target.value)
+            }
+            placeholder="Location..."
+            className="rounded border bg-black p-3 text-white"
+
+          />
+          
           <input
             type="text"
             value={keyword}
@@ -54,7 +118,7 @@ export default function Home() {
               setKeyword(e.target.value)
             }
             placeholder="Search jobs..."
-            className="flex-1 rounded border bg-black p-3"
+            className="flex-1 rounded border bg-black p-3 text-white"
           />
 
           <button
@@ -65,12 +129,18 @@ export default function Home() {
           </button>
         </div>
 
+        <p className="mb-4 text-lg font-semibold">
+          {filteredJobs.length} jobs found
+        </p>
+
         {loading && (
-          <p>Loading jobs...</p>
+          <p className="mb-4">
+            Loading jobs...
+          </p>
         )}
 
         <div className="space-y-4">
-          {jobs.map((job, index) => (
+          {filteredJobs.map((job, index) => (
             <div
               key={index}
               className="rounded bg-green-400 p-5 shadow"
@@ -79,16 +149,30 @@ export default function Home() {
                 {job.title}
               </h2>
 
-              <p>{job.company}</p>
-
-              <p>{job.location}</p>
-
-              <p className="text-sm text-black">
-                Source: {job.source}
+              <p className="font-medium">
+                {job.company}
               </p>
 
+              <p>
+                📍 {job.location}
+              </p>
+
+              <div className="mt-2 flex gap-2">
+                <span className="rounded bg-gray-200 px-2 py-1 text-xs">
+                  {job.source}
+                </span>
+
+                {job.remote && (
+                  <span className="rounded bg-green-200 px-2 py-1 text-xs">
+                    Remote
+                  </span>
+                )}
+              </div>
+
               {job.salary && (
-                <p>Salary: {job.salary}</p>
+                <p className="mt-2">
+                  Salary: {job.salary}
+                </p>
               )}
 
               <a
